@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototypes — Aram G</title>
+<style>
+  :root{ color-scheme: light dark; --bg:#fbfbfa; --fg:#18181b; --mut:#6b6b74;
+         --line:#e4e4e7; --card:#fff; --accent:#2e8bc0; }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#0e0e10; --fg:#f4f4f5; --mut:#9a9aa3; --line:#26262b; --card:#161619; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto;padding:72px 24px 96px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 8px;letter-spacing:-.02em}
+  .sub{color:var(--mut);margin:0 0 48px;max-width:52ch}
+  .list{display:flex;flex-direction:column;gap:16px}
+  a.item{display:block;padding:22px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
+  a.item:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .t{font-size:18px;font-weight:650;letter-spacing:-.01em;margin-bottom:6px}
+  .d{color:var(--mut);font-size:15px;text-wrap:pretty}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .tag{font-size:12px;font-weight:600;letter-spacing:.02em;padding:3px 9px;border-radius:999px;
+    background:var(--bg);border:1px solid var(--line);color:var(--mut)}
+  footer{margin-top:56px;padding-top:24px;border-top:1px solid var(--line);
+    color:var(--mut);font-size:14px}
+  footer a{color:inherit}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Prototypes</h1>
+    <p class="sub">Working prototypes — clickable, self-contained, mostly single HTML files.
+       Each one exists to settle a specific design question rather than to look finished.</p>
+
+    <div class="list">
+      <a class="item" href="./wetrials-study-finder-account/">
+        <div class="t">Study Finder — portal account access</div>
+        <div class="d">Signing in to a patient portal from inside a widget embedded on a
+          third-party page, without losing the page you were on. Five entry-point options
+          behind a toggle, and the full sign-in round trip.</div>
+        <div class="meta">
+          <span class="tag">Embedded widget</span>
+          <span class="tag">Cross-origin auth</span>
+          <span class="tag">Mobile-first</span>
+        </div>
+      </a>
+    </div>
+
+    <footer>
+      Source on <a href="https://github.com/aramg7091/prototypes">GitHub</a>.
+    </footer>
+  </main>
+</body>
+</html>
