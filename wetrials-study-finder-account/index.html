@@ -1,0 +1,1366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WeTrials embed — account access prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --n25:#fff; --n50:#f8f8f9; --n100:#f2f3f4; --n200:#ededef; --n300:#e0e0e4;
+    --n400:#d4d4d8; --n500:#9f9fa9; --n600:#71717b; --n700:#52525c; --n900:#27272a;
+    --n1000:#18181b; --n1100:#09090b; --gray200:#e9ebed;
+    --blue100:#c0dff1; --blue500:#3399d3; --blue600:#2e8bc0; --blue850:#003ca5;
+    --violet50:#ebebf8; --violet500:#3538b6;
+    --succ50:#e4f7f0; --succ200:#96ddc4; --succ400:#2bbc80; --succ700:#237050;
+    --warn50:#fff4ec; --warn100:#ffdfc9; --warn200:#ffc296; --warn500:#e56910; --warn700:#a64901;
+    --info50:#eaf3ff; --info100:#cde1ff; --info200:#86b9ff; --info700:#0156cd; --info800:#0a336d;
+    --err700:#af2f25;
+    --purple350:#a70098;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Noto Sans',system-ui,-apple-system,sans-serif;
+    background:var(--n100); color:var(--n1100);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+  a{color:#246d96}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+  /* ---------- simulated address strip (link mode only) ---------- */
+  #chrome{display:none;position:sticky;top:0;z-index:60;align-items:center;gap:8px;
+    padding:8px 12px;background:#1c1c1f;color:#c9c9cf;font-size:12px;letter-spacing:.2px}
+  body.simulated #chrome{display:flex}
+  #chrome .dot{width:9px;height:9px;border-radius:50%;background:#3a3a40;flex:0 0 auto}
+  #chrome .bar{flex:1;min-width:0;display:flex;align-items:center;gap:7px;
+    padding:6px 12px;border-radius:999px;background:#2a2a2f;overflow:hidden}
+  #chrome .host{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e6e6ea}
+  #chrome .tag{flex:0 0 auto;padding:3px 8px;border-radius:999px;background:#3a3a40;font-size:10px;
+    text-transform:uppercase;letter-spacing:.6px;color:#a5a5ad}
+
+  /* ---------- shells ---------- */
+  .page{max-width:1440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+  .partner-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:14px 20px;background:#fff;border-bottom:1px solid var(--gray200)}
+  .partner-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700}
+  .partner-mark{width:32px;height:32px;border-radius:9px;background:#0f5c4a;color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;letter-spacing:.5px}
+  .partner-links{display:none;gap:26px;font-size:14px;color:#3f3f47}
+  .partner-cta{display:none;padding:9px 18px;border-radius:999px;background:#0f5c4a;color:#fff;font-size:14px;font-weight:600}
+  .hamb{width:44px;height:44px;margin-right:-8px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  @media(min-width:900px){ .partner-links{display:flex} .partner-cta{display:block} .hamb{display:none} }
+
+  /* ---------- option D: CTA banner above the switcher ---------- */
+  .acctbanner{display:flex;align-items:center;gap:10px;padding:6px 10px;
+    border-radius:10px;background:var(--n1000)}
+  .acctbanner .ic{width:28px;height:28px;border-radius:999px;background:#fff;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .acctbanner .tx{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;flex:1;min-width:0}
+  .acctbanner .t1{font-size:14px;font-weight:600;color:#fff;line-height:1.3}
+  .acctbanner .t2{display:flex;align-items:center;gap:6px;margin-left:auto;flex:0 0 auto}
+  .acctbanner .bbtn{display:inline-flex;align-items:center;height:44px;padding:0 18px;
+    border-radius:8px;background:#fff;color:var(--n1000);font-size:14px;font-weight:600;white-space:nowrap}
+  .acctbanner .lnk{display:none;align-items:center;height:44px;padding:0 10px;font-size:14px;
+    font-weight:600;color:#fff;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+  .acctbanner .on-lg{display:none}
+  @media(min-width:640px){
+    .acctbanner .lnk{display:inline-flex}
+    .acctbanner .on-sm{display:none}
+    .acctbanner .on-lg{display:inline}
+  }
+
+  .widget{flex:1;display:flex;flex-direction:column;min-height:0}
+  .whead{background:#fff;border-bottom:1px solid var(--n200);padding:16px}
+  .wheadin{display:flex;flex-direction:column;gap:12px;width:100%}
+  .hrow{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .acct-desktop{display:none}
+  .wbody{display:flex;flex-direction:column;gap:12px;padding:16px 16px 104px;flex:1}
+  .results{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .filters{display:none}
+
+  /* filter sidebar (desktop only — on mobile these live behind the filter button) */
+  .fcard{display:flex;flex-direction:column;gap:14px;padding:20px;background:#fff;
+    border:1px solid var(--gray200);border-radius:8px}
+  .fcard .h{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .fcard .h .l{display:flex;align-items:center;gap:6px;font-size:16px;font-weight:700}
+  .finput{height:48px;display:flex;align-items:center;padding:0 14px;border:1px solid var(--n300);
+    border-radius:8px;font-size:14px;color:var(--n500)}
+  .fopt{display:flex;align-items:center;gap:12px;font-size:15px;color:var(--n900)}
+  .fbox{width:20px;height:20px;border:1.5px solid var(--n400);border-radius:4px;flex:0 0 auto}
+  .fbox.round{border-radius:999px}
+
+
+  /* ---------- pill + account ---------- */
+  .pillrow{display:flex;align-items:center;gap:8px;min-width:0}
+  .pillrow > .pill{flex:1 1 auto;min-width:0}
+  .pillspacer{display:none}
+  .pill{display:flex;align-items:center;gap:8px;min-width:0;padding:8px;border-radius:999px;background:var(--n100)}
+  .pill.grow{flex:1;min-width:0}
+  .pill-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;min-height:44px;margin:-4px 0}
+  .pill-ico{width:36px;height:36px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .pill-user{width:36px;height:36px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .pill-lbl{font-size:18px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill-div{width:1px;height:28px;background:var(--n400);flex:0 0 auto}
+  .acct-seg{width:44px;height:44px;margin:-4px 0;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .avatar{position:relative;width:36px;height:36px;border-radius:999px;background:var(--blue600);
+    color:#fff;font-size:13px;font-weight:700;letter-spacing:.4px;display:flex;align-items:center;justify-content:center}
+  .avatar .unread{position:absolute;top:-1px;right:-1px;width:13px;height:13px;border-radius:999px;
+    background:var(--warn500);border:2px solid var(--n100)}
+  .signin-btn{display:flex;align-items:center;gap:6px;height:44px;margin:-4px 0;padding:0 16px;
+    border-radius:999px;background:#fff;border:1px solid var(--n400);font-size:15px;font-weight:600;flex:0 0 auto;white-space:nowrap}
+  .signin-btn.solo{margin:0}
+
+  /* ---------- search ---------- */
+  .searchrow{display:flex;align-items:center;gap:8px}
+  .search{display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 6px 6px 14px;
+    border:1px solid var(--n300);border-radius:999px;background:#fff}
+  .search input{flex:1;min-width:0;border:0;outline:0;font:inherit;font-size:14px;background:transparent}
+  .search input::placeholder{color:var(--n500)}
+  .search .go{width:36px;height:36px;border-radius:999px;background:var(--blue100);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .iconbtn{width:44px;height:44px;border-radius:999px;border:1px solid var(--n300);background:#fff;
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .count{font-size:14px;color:var(--n700)}
+  .count b{color:var(--n1100)}
+
+  /* ---------- cards ---------- */
+  .card{display:flex;flex-direction:column;gap:12px;padding:20px;background:#fff;
+    border:1px solid var(--gray200);border-radius:8px;width:100%}
+  .card.feat{padding:2px 2px 6px;background:var(--blue850);border:0;border-radius:10px}
+  .card.feat > .inner{display:flex;flex-direction:column;gap:12px;padding:20px;background:#fff;border-radius:8px}
+  .chips{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .chip{display:flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;font-size:14px;font-weight:500}
+  .chip.rec{background:var(--succ50);color:var(--succ700)}
+  .chip.nyr{background:var(--warn50);color:var(--warn700)}
+  .chip.int{background:var(--violet50);color:var(--violet500)}
+  .chip.feat{background:linear-gradient(to right,var(--purple350),var(--blue850));color:#fff}
+  @media(min-width:1024px){ .chip.feat{margin-left:auto} }
+  .ctitle{font-size:18px;font-weight:600;line-height:1.35}
+  .crow{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--n700)}
+  .crow b{color:var(--n1100);font-weight:500}
+  .conds{display:flex;flex-direction:column;border:1px solid var(--n200);border-radius:8px;overflow:hidden}
+  .conds .h{display:flex;align-items:center;gap:8px;padding:8px;background:var(--n50);
+    border-bottom:1px solid var(--n200);font-size:14px;color:var(--n700)}
+  .conds .b{display:flex;flex-wrap:wrap;gap:8px;padding:8px;background:#fff}
+  .cond{padding:4px 12px;border:1px solid var(--n300);border-radius:8px;font-size:14px;font-weight:500}
+  .cfoot{display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:500;color:var(--n600)}
+  .cfoot .ai{display:flex;align-items:center;gap:4px}
+  @media(min-width:1024px){ .ctitle{font-size:21px} }
+
+  /* ---------- buttons ---------- */
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;
+    border-radius:8px;font-size:15px;font-weight:600}
+  .btn.pri{background:var(--n1000);color:#fff}
+  .btn.sec{background:#fff;border:1px solid var(--n400)}
+  .btn.full{width:100%}
+  .btn.sm{height:44px;font-size:14px;padding:0 18px}
+
+  /* ---------- sheet ---------- */
+  .scrim{position:fixed;inset:0;background:rgba(9,9,11,.55);z-index:70;opacity:0;pointer-events:none;transition:opacity .18s}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;background:#fff;border-radius:16px 16px 0 0;
+    transform:translateY(101%);transition:transform .22s cubic-bezier(.2,.8,.3,1);
+    max-height:88vh;overflow:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  .sheet.on{transform:none}
+  @media(min-width:1024px){
+    .sheet{left:auto;right:max(24px, calc((100vw - 1024px) / 2 + 32px));bottom:auto;top:168px;
+      width:360px;max-height:calc(100vh - 200px);border-radius:14px;
+      transform:translateY(-8px) scale(.98);opacity:0;box-shadow:0 24px 70px rgba(9,9,11,.28)}
+    .sheet.on{transform:none;opacity:1}
+  }
+  .grab{display:flex;justify-content:center;padding:8px 0 4px}
+  .grab i{width:44px;height:4px;border-radius:999px;background:var(--n300)}
+  @media(min-width:1024px){ .grab{display:none} }
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:4px 20px 14px;border-bottom:1px solid var(--gray200)}
+  .sheet-id{display:flex;align-items:center;gap:12px;min-width:0}
+  .sheet-id .big{width:44px;height:44px;border-radius:999px;background:var(--blue600);color:#fff;
+    font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .sheet-id .nm{font-size:16px;font-weight:700}
+  .sheet-id .em{font-size:13px;color:var(--n600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .xbtn{width:44px;height:44px;margin-right:-10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .menu{display:flex;flex-direction:column;padding:12px}
+  .mrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 8px;
+    border-bottom:1px solid var(--n200);width:100%}
+  .mrow:last-child{border-bottom:0}
+  .mrow .l{display:flex;align-items:center;gap:12px}
+  .mrow .ic{width:36px;height:36px;border-radius:999px;background:#fff;border:1px solid var(--n300);
+    display:flex;align-items:center;justify-content:center;position:relative;flex:0 0 auto}
+  .mrow .ic .dot{position:absolute;top:-2px;right:-2px;width:12px;height:12px;border-radius:999px;
+    background:var(--warn500);border:2px solid #fff}
+  .mrow .t{font-size:16px;font-weight:500;color:var(--n900)}
+  .pillnum{min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--n100);
+    color:var(--n700);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .acctcard{margin:12px;padding:14px;border:1px solid var(--info100);border-radius:10px;background:var(--info50);
+    display:flex;flex-direction:column;gap:12px}
+  .acctcard .ac-top{display:flex;align-items:flex-start;gap:10px}
+  .acctcard .ac-ic{width:32px;height:32px;border-radius:999px;background:#fff;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center}
+  .acctcard .ac-t{font-size:15px;font-weight:700;color:var(--info800)}
+  .acctcard .ac-s{font-size:13px;color:var(--info800);opacity:.8;line-height:1.45}
+  .acctcard .ac-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .signout{padding:0 20px 16px}
+  .signout .inner{padding-top:12px;border-top:1px solid var(--gray200)}
+  .signout .t{display:flex;align-items:center;height:44px;font-size:16px;font-weight:600;color:var(--err700)}
+  .signout .s{font-size:12px;color:var(--n600);line-height:1.5}
+
+  /* ---------- toast ---------- */
+  #toast{position:fixed;left:16px;right:88px;bottom:86px;z-index:80;display:flex;align-items:center;gap:10px;
+    padding:12px 14px;border-radius:10px;background:var(--n1000);color:#fff;font-size:14px;font-weight:500;
+    box-shadow:0 8px 24px rgba(9,9,11,.28);
+    /* the off state must clear the bottom inset too, not just its own height */
+    transform:translateY(20px);opacity:0;visibility:hidden;
+    transition:transform .24s cubic-bezier(.2,.8,.3,1), opacity .18s, visibility 0s linear .24s}
+  #toast.on{transform:none;opacity:1;visibility:visible;transition-delay:0s}
+  @media(min-width:1024px){ #toast{left:auto;right:96px;bottom:28px;max-width:360px} }
+
+  /* ---------- portal ---------- */
+  .portal{min-height:100vh;background:var(--n50);display:flex;flex-direction:column}
+  .pnav{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 18px;background:#fff;border-bottom:1px solid var(--n200)}
+  @media(min-width:900px){
+    .pnav{padding:16px 24px}
+    .pnav > *{max-width:none}
+    .pwrap .btn.full{max-width:360px}
+  }
+  .pback{display:flex;align-items:center;gap:8px;min-width:0}
+  .pback .chev{width:44px;height:44px;margin-left:-10px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .pback .tt{font-size:16px;font-weight:700}
+  .pback .ss{font-size:12px;color:var(--n600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pwrap{flex:1;width:100%;max-width:720px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+  .plogin{flex:1;display:flex;flex-direction:column;justify-content:center;gap:22px;
+    width:100%;max-width:420px;margin:0 auto;padding:24px}
+  .h1{font-size:24px;font-weight:700;line-height:1.25;text-align:center}
+  .sub{font-size:14px;color:var(--n600);text-align:center;line-height:1.5}
+  .notice{display:flex;gap:10px;padding:12px 14px;border:1px solid var(--info100);border-radius:8px;
+    background:var(--info50);font-size:13px;color:var(--info800);line-height:1.5}
+  .notice.bad{border-color:#ffd6d3;background:#ffedec;color:#5e201b}
+  .tabs{display:flex;gap:8px}
+  .tab{display:flex;align-items:center;height:44px;padding:0 18px;border-radius:999px;
+    background:#fff;border:1px solid var(--n300);color:var(--n700);font-size:14px;font-weight:500}
+  .tab.on{background:var(--n1000);border-color:var(--n1000);color:#fff;font-weight:600}
+  .req{display:flex;flex-direction:column;gap:12px;padding:16px;background:#fff;border:1px solid var(--gray200);border-radius:8px}
+  .req .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .req .when{font-size:12px;color:var(--n500)}
+  .req .t{font-size:16px;font-weight:600;line-height:1.4}
+  .alert{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;
+    background:var(--warn50);border:1px solid var(--warn100);font-size:13px;font-weight:500;color:var(--warn700)}
+  .step{display:flex;align-items:center;gap:8px}
+  .step .n{width:26px;height:26px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;background:#fff;border:1px solid var(--n400);color:var(--n500);flex:0 0 auto}
+  .step .n.on{background:var(--n1000);border-color:var(--n1000);color:#fff}
+  .step .ln{height:2px;flex:1;background:var(--n300)}
+  .opt{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--n300);border-radius:8px;background:#fff;width:100%}
+  .opt.on{border:2px solid var(--n1000);padding:13px}
+  .opt .av{width:44px;height:44px;border-radius:999px;background:var(--blue600);color:#fff;
+    font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .opt .av.ghost{background:var(--n100);color:var(--n700)}
+  .opt .nm{font-size:15px;font-weight:600}
+  .opt .mt{font-size:13px;color:var(--n600)}
+  .field{display:flex;flex-direction:column;gap:8px}
+  .field label{font-size:14px;font-weight:600}
+  .field textarea{font:inherit;font-size:15px;padding:12px;border:1px solid var(--n300);border-radius:8px;
+    min-height:110px;resize:vertical;outline-color:var(--blue600);width:100%}
+  .efoot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:4px}
+  .efoot .stepno{font-size:13px;color:var(--n600);white-space:nowrap}
+  .success{display:flex;flex-direction:column;align-items:center;gap:14px;padding:36px 24px;text-align:center}
+
+  /* ---------- the partner's own footer ---------- */
+  .pfoot{background:#0f2e26;color:#cfe0da;padding:28px 16px 20px}
+  .pf-in{display:flex;flex-direction:column;gap:20px;max-width:1440px;margin:0 auto}
+  .pf-brand{display:flex;align-items:center;gap:10px;color:#fff;font-size:16px;font-weight:700}
+  .pf-cols{display:flex;flex-wrap:wrap;gap:24px}
+  .pf-cols > span{display:flex;flex-direction:column;gap:6px;min-width:130px}
+  .pf-cols b{color:#fff;font-size:13px}
+  .pf-cols i{font-style:normal;font-size:13px;opacity:.75}
+  .pf-legal{max-width:1440px;margin:20px auto 0;padding-top:16px;border-top:1px solid rgba(255,255,255,.14);
+    font-size:12px;opacity:.7}
+  @media(min-width:1024px){ .pfoot{padding:36px 32px 24px} .pf-cols{gap:56px} }
+
+  /* ---------- version E: mobile bottom bar ---------- */
+  .bbar{display:none}
+  @media(max-width:767px){
+    .bbar{display:flex;position:sticky;bottom:0;z-index:40;background:#fff;
+      border-top:1px solid var(--n200);box-shadow:0 -6px 20px rgba(9,9,11,.06);
+      padding-bottom:env(safe-area-inset-bottom)}
+    .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+      height:62px;color:var(--n600);font-size:11px;font-weight:600;letter-spacing:.2px}
+    .btab.on{color:var(--n1100)}
+    .btab .bi{display:flex}
+    .e-mode .pill-chev{display:none}
+    body.has-bbar #fab{bottom:82px}
+  }
+
+  /* ---------- chat FAB (existing product surface — untouched) ---------- */
+  #fab{position:fixed;right:16px;bottom:20px;z-index:50;width:56px;height:56px;border-radius:999px;
+    background:var(--blue600);box-shadow:0 6px 18px rgba(9,9,11,.22);display:flex;align-items:center;justify-content:center}
+  @media(min-width:1024px){ #fab{right:24px;bottom:24px} }
+
+  /* ---------- demo control (not product UI) ---------- */
+  #demo{position:fixed;left:12px;bottom:20px;z-index:90;display:flex;align-items:center;gap:6px;
+    padding:6px 8px 6px 10px;border-radius:10px;background:rgba(24,24,27,.92);color:#fff;
+    border:1px dashed rgba(255,255,255,.35);font-size:11px;letter-spacing:.4px}
+  #demo .lb{text-transform:uppercase;color:#a5a5ad;font-size:10px}
+  #demo .opts{display:flex;gap:3px}
+  #demo .opts button{width:26px;height:26px;border-radius:7px;background:rgba(255,255,255,.12);
+    color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  #demo .opts button[aria-pressed="true"]{background:#fff;color:#18181b}
+  @media(min-width:1024px){ #demo{bottom:24px;left:24px} }
+
+  /* ---------- tablet and up: one header row, every control the same height ----- */
+  @media(min-width:768px){
+    .hrow{flex-direction:row;align-items:center;gap:16px}
+    .pill,.pill.grow,.pillrow > .pill{flex:0 0 auto;align-self:auto;min-width:260px;max-width:260px;height:52px}
+    .pillrow{flex:0 0 auto;width:auto;gap:0}
+    .pillspacer{display:none}
+    .searchrow{flex:1 1 auto;min-width:0;gap:12px}
+    .searchrow .search{height:52px;padding:6px 6px 6px 18px}
+    .searchrow .search input{font-size:15px}
+    .searchrow .search .go{width:40px;height:40px}
+    .searchrow .iconbtn{width:52px;height:52px}
+    .pill .acct-mobile,.pillrow .acct-mobile{display:none}
+    .acct-desktop{display:flex;flex:0 0 auto}
+    .acct-desktop .signin-btn{height:52px;margin:0}
+    .acct-desktop .acct-seg{width:52px;height:52px;margin:0}
+    .acctbanner{min-height:52px}
+  }
+
+  /* ---------- desktop layout (kept last so it wins over the base rules) ---------- */
+  @media(min-width:1024px){
+    .acctbanner{align-self:stretch;max-width:none;padding:6px 8px 6px 16px}
+    .acctbanner .tx{gap:20px;flex-wrap:nowrap}
+    .acctbanner .t1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .acctbanner .t2{margin-left:auto;flex:0 0 auto}
+    /* Matches the shipped layout: pill and search share ONE row, and the results
+       sit beside a filter sidebar. The account control moves to the end of that
+       row — which is why A/B/D only really differ on mobile. */
+    .whead{padding:18px 32px}
+    .wheadin{max-width:1440px;margin:0 auto}
+    .hrow{gap:24px}
+    .pill,.pill.grow,.pillrow > .pill{min-width:320px;max-width:320px}
+    .searchrow{gap:16px}
+    .searchrow .search{padding:8px 8px 8px 20px}
+    .searchrow .search input{font-size:16px}
+    .searchrow .search .go{width:44px;height:44px}
+    .searchrow .filter-toggle{display:none}
+    .pill .acct-mobile,.pillrow .acct-mobile{display:none}
+    .acct-desktop{display:flex;flex:0 0 auto}
+    .wbody{flex-direction:row;align-items:flex-start;gap:24px;
+      padding:24px 32px 110px;max-width:1440px;width:100%;margin:0 auto}
+    .filters{display:flex;flex-direction:column;gap:16px;width:320px;flex:0 0 320px}
+    .results{flex:1 1 auto}
+    .wbody .btn.full{max-width:340px}
+    .wbody.single{max-width:1024px;flex-direction:column}
+    .card .conds{flex-direction:row;align-items:stretch}
+    .card .conds .h{border-bottom:0;border-right:1px solid var(--n200);white-space:nowrap;padding:12px;font-size:16px}
+    .card .conds .b{flex:1;padding:12px}
+    .card .cond{font-size:16px;padding:5px 14px}
+  }
+</style>
+</head>
+<body>
+
+<div id="chrome" aria-hidden="true">
+  <span class="dot"></span>
+  <span class="bar"><span id="chrome-host" class="host"></span></span>
+  <span class="tag">simulated</span>
+</div>
+
+<main id="root"></main>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Your WeTrials account"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =========================================================================
+   WeTrials embed — account access prototype
+   -------------------------------------------------------------------------
+   ONE file, TWO roles. How the role is picked:
+     · ?site=portal            → the WeTrials portal
+     · anything else           → the partner site hosting the Study Finder
+   How the handoff happens:
+     · REAL mode (two origins, e.g. localhost:5180 + :5181) — genuine
+       top-level navigation between origins. sessionStorage really is
+       per-origin, the ticket really does ride in the fragment.
+     · SIMULATED mode (single link, e.g. a published page) — same screens,
+       same steps, same storage discipline, but the "navigation" is an
+       in-page swap with a fake address strip, because a sandboxed page
+       cannot navigate the top window.
+   Nothing here talks to a server. Sign-in is faked; the POINT is the
+   choreography: what is saved, what crosses, what each origin can see.
+   ========================================================================= */
+
+/* ---- environment guards -------------------------------------------------
+   This file has to survive being opened in places that are stricter than a
+   web server: a srcdoc iframe (no History API, origin is opaque-ish), a
+   file:// path, a sandboxed preview with storage blocked. None of that is
+   how it will ship, but a prototype that dies in a preview pane is useless.
+   So: History and Storage are both probed once and shimmed if unavailable. -*/
+let MEM = false;
+try { history.replaceState(history.state, '', location.href); }
+catch { MEM = true; }
+
+/* When History is unusable we keep a virtual URL instead of the real one.
+   Everything below reads the URL through curQS()/curHash(), never directly. */
+let VU = new URL(MEM ? 'https://virtual.local/' : location.href);
+
+function memStore() {
+  const m = new Map();
+  return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+}
+/* Note the name, not the object: in a sandboxed frame merely READING
+   window.sessionStorage throws, so the property access has to be inside
+   the try as well as the write. */
+function pickStore(name) {
+  try {
+    const s = window[name];
+    s.setItem('__probe', '1');
+    s.removeItem('__probe');
+    return s;
+  } catch { return memStore(); }
+}
+const SS = pickStore('sessionStorage');
+const LS = pickStore('localStorage');
+
+const curURL  = () => (MEM ? new URL(VU.toString()) : new URL(location.href));
+const curQS   = () => curURL().searchParams;
+const curHash = () => (MEM ? VU.hash : location.hash);
+
+function pushURL(u) {
+  if (!MEM) {
+    try { history.pushState({}, '', u.toString()); }
+    catch { MEM = true; VU = u; }
+  } else { VU = u; }
+  if (MEM) VU = u;
+  render();
+  window.scrollTo(0, 0);
+}
+function replaceURL(u) {
+  if (!MEM) { try { history.replaceState(null, '', u.toString()); return; } catch { MEM = true; } }
+  VU = u;
+}
+function setRoute(hash) {
+  const u = curURL();
+  u.hash = hash;
+  if (!MEM) { location.hash = hash; return; }   // hashchange handler renders
+  VU = u; render(); window.scrollTo(0, 0);
+}
+
+/* ---- origins ------------------------------------------------------------
+   Two ORIGINS are what make the handoff real; two paths on one host are not.
+   Fill DEPLOY in if you host this at two hostnames (two Cloudflare Pages
+   projects, two subdomains, whatever) and the deployed copy behaves exactly
+   like the local two-port setup. Leave it blank and a single-host deploy
+   falls back to the in-page simulation, which is fine for showing the flow
+   but proves nothing about cross-origin behaviour. ---------------------- */
+const DEPLOY = {
+  partner: '',   // e.g. 'https://wt-partner.pages.dev'
+  portal:  '',   // e.g. 'https://wt-portal.pages.dev'
+};
+
+const REAL = (() => {
+  if (DEPLOY.partner && DEPLOY.portal &&
+      (location.origin === DEPLOY.partner || location.origin === DEPLOY.portal)) {
+    return { partner: DEPLOY.partner, portal: DEPLOY.portal };
+  }
+  const h = location.hostname;
+  const local = h === 'localhost' || h === '127.0.0.1' || /^192\.168\./.test(h) || /^10\./.test(h);
+  if (!local) return null;
+  return {
+    partner: `${location.protocol}//${h}:5180`,
+    portal:  `${location.protocol}//${h}:5181`,
+  };
+})();
+const SIMULATED = !REAL;
+const PARTNER_LABEL = 'partnerhealth.org';
+const PORTAL_LABEL  = 'portal.wetrials.com';
+
+/* The portal only ever hands a ticket back to an origin on this list.
+   This is the prototype's stand-in for ApiKey.restrictions.application.websites. */
+const ALLOWED_RETURN_ORIGINS = REAL ? [REAL.partner] : [location.origin];
+
+/* ---- role --------------------------------------------------------------- */
+let site = curQS().get('site') === 'portal' ? 'portal' : 'partner';
+if (REAL) {
+  site = (DEPLOY.portal && location.origin === DEPLOY.portal) || location.port === '5181'
+    ? 'portal' : 'partner';
+}
+document.body.classList.toggle('simulated', SIMULATED);
+
+/* ---- storage ------------------------------------------------------------
+   Two session facts that never cross an origin:
+     PARTNER_SESSION  — display identity only. No clinical data. Tab-scoped.
+     PORTAL_SESSION   — stands in for the portal's own httpOnly cookie.
+   In simulated mode both live in one browser origin, so they are namespaced
+   and the code never reads across the boundary. That discipline IS the spec. -*/
+const K = {
+  partnerSession: 'wt.partner.session',
+  handoff:        'wt.partner.handoff',
+  portalSession:  'wt.portal.session',
+  requests:       'wt.portal.requests',
+  entryOption:    'wt.demo.entryOption',
+  simSite:        'wt.sim.site',
+  simState:       'wt.sim.state',
+};
+const j = {
+  get(store, k, d = null) { try { const v = store.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(store, k, v) { try { store.setItem(k, JSON.stringify(v)); } catch {} },
+  del(store, k) { try { store.removeItem(k); } catch {} },
+};
+
+/* ---- data --------------------------------------------------------------- */
+const USER = { name: 'Sara Chen', short: 'Sara C.', initials: 'SC', email: 'sara.chen@example.com' };
+
+const STUDIES = [
+  { nct:'NCT05139056', featured:true, status:'rec', type:'int',
+    title:'Virus therapy for gliomas that have come back',
+    age:'18 Years and older',
+    conds:['Recurrent Anaplastic Astrocytoma','Glioblastoma','Glioma','Astrocytoma','Brain Neoplasm','Recurrent Glioma','Malignant Glioma','CNS Tumour'],
+    site:'Toronto Western Hospital', dist:'4.2 km' },
+  { nct:'NCT06561204', status:'nyr', type:'int',
+    title:'Imaging Technique for Recurrent Brain Tumor Detection',
+    age:'18 Years and older',
+    conds:['Small-Cell Lung Cancer with Brain Metastases','Glioblastoma','Glioma'],
+    site:'Sunnybrook Research Institute', dist:'11 km' },
+  { nct:'NCT07215910', status:'rec', type:'int',
+    title:'Testing Addition of an Anti-cancer Drug, Vorasidenib to Temozolomide',
+    age:'12 Years and older',
+    conds:['Astrocytoma, IDH-Mutant, Grade 3'],
+    site:'Princess Margaret Cancer Centre', dist:'6.8 km' },
+];
+const studyBy = (nct) => STUDIES.find(s => s.nct === nct);
+
+const SEED_REQUESTS = [{
+  nct:'NCT05139056', title:'Virus therapy for gliomas that have come back',
+  state:'reviewing', when:'2d ago', site:'Toronto Western Hospital', dist:'4.2 km', needsDoc:true,
+}];
+
+/* ---- tiny helpers -------------------------------------------------------- */
+const el = (h) => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstElementChild; };
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches && window.matchMedia('(pointer: fine)').matches;
+const b64e = (o) => btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+const b64d = (s) => JSON.parse(decodeURIComponent(escape(atob(s))));
+const nonce = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+/* ---- icons --------------------------------------------------------------- */
+const I = {
+  scope:(c='#52525C',s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 20.25H13.25V19.63C16.38 19.04 18.75 16.29 18.75 13c0-1.81-.71-3.5-1.97-4.76l1-1c.49-.49.74-1.02.74-1.57 0-.36-.12-.71-.33-1.05.25-.29.25-.74-.03-1.02l-1-1c-.28-.28-.72-.28-1.02-.02-.86-.53-1.8-.4-2.62.41L8.76 7.76c-.62.61-.85 1.3-.69 1.97l-.74.74c-.71.71-.71 1.6 0 2.31l.66.66c.35.35.74.53 1.15.53s.8-.18 1.15-.53l.74-.74c.14.03.27.05.41.05.55 0 1.08-.25 1.57-.74l2.71-2.71A5.22 5.22 0 0 1 17.25 13c0 2.9-2.36 5.25-5.25 5.25a5.2 5.2 0 0 1-3.67-1.5H10c.41 0 .75-.34.75-.75s-.34-.75-.75-.75H5c-.41 0-.75.34-.75.75s.34.75.75.75h1.41A7.29 7.29 0 0 0 11.75 19.73v.52H6c-.41 0-.75.34-.75.75s.34.75.75.75h13c.41 0 .75-.34.75-.75s-.34-.75-.75-.75ZM9.15 12.46c-.02-.01-.05-.04-.1-.08l-.66-.66c-.04-.05-.07-.08-.08-.09.01-.02.04-.05.08-.1l.5-.5.85.85-.5.5c-.05.05-.08.07-.09.08Zm2.8-1.51c-.39.39-.63.39-1.02 0L9.82 9.83c-.4-.4-.4-.61 0-1.01l4.76-4.77c.2-.2.36-.3.51-.3s.31.1.51.3l1.11 1.12c.19.19.3.37.3.51s-.11.32-.3.51l-4.77 4.76Z" fill="${c}"/></svg>`,
+  updown:(c='#3F3F47',s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M16.53 13.47c.29.29.29.77 0 1.06l-4 4a.75.75 0 0 1-1.06 0l-4-4a.75.75 0 1 1 1.06-1.06L12 16.94l3.47-3.47c.29-.29.77-.29 1.06 0ZM8.53 10.53 12 7.06l3.47 3.47a.75.75 0 0 0 1.06-1.06l-4-4a.75.75 0 0 0-1.06 0l-4 4a.75.75 0 0 0 1.06 1.06Z" fill="${c}"/></svg>`,
+  person:(c='#09090b',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.4" r="3.4" stroke="${c}" stroke-width="1.7"/><path d="M5.2 19.6c0-3.2 3-5.2 6.8-5.2s6.8 2 6.8 5.2" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/></svg>`,
+  info:(c='#9f9fa9',s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="${c}" stroke-width="1.6"/><path d="M12 11v5.2M12 7.9v.1" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  search:(c='#2e8bc0',s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.6" stroke="${c}" stroke-width="2"/><path d="M16 16l4.2 4.2" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`,
+  sliders:(c='#52525c',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h8M16 17h4" stroke="${c}" stroke-width="1.7" stroke-linecap="round"/><circle cx="16" cy="7" r="2" stroke="${c}" stroke-width="1.7"/><circle cx="9" cy="12" r="2" stroke="${c}" stroke-width="1.7"/><circle cx="14" cy="17" r="2" stroke="${c}" stroke-width="1.7"/></svg>`,
+  dot:(fill,dot,s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" fill="${fill}"/><circle cx="10" cy="10" r="3.2" fill="${dot}"/></svg>`,
+  flask:(c='#3538b6',s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 3h6M10 3v6.2L6.4 17.4A2 2 0 0 0 8.2 20.3h7.6a2 2 0 0 0 1.8-2.9L14 9.2V3" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/></svg>`,
+  people:(c='#52525c',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.1" stroke="${c}" stroke-width="1.6"/><path d="M3.6 19.2c0-2.8 2.4-4.6 5.4-4.6s5.4 1.8 5.4 4.6" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/><path d="M16.4 6.4a3 3 0 0 1 0 5.4M17.6 19.2c0-2.1-.7-3.6-2-4.5" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  heart:(c='#52525c',s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.4 6.6a4.6 4.6 0 0 0-7.1-.7l-1.3 1.3-1.3-1.3a4.6 4.6 0 0 0-6.9 6l7.2 7.6a1.4 1.4 0 0 0 2 0l7.2-7.6a4.6 4.6 0 0 0 .2-5.3Z" stroke="${c}" stroke-width="1.5" stroke-linejoin="round"/><path d="M3.6 12.6h4l1.6-2.4 2 4.4 1.6-2h3.4" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  twinkle:(c='#71717b',s=16)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.6l1.9 5.6 5.5 1.9-5.5 1.9-1.9 5.6-1.9-5.6L4.6 10.1l5.5-1.9L12 2.6Z" fill="${c}"/><path d="M18.6 15.4l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9.9-2.4Z" fill="${c}"/></svg>`,
+  star:(c='#fff',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.4l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.8l6-.8L12 3.4Z" fill="${c}"/></svg>`,
+  x:(c='#040325',s=24)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 18L18 6M18 18L6 6" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`,
+  chevL:(c='#09090b',s=24)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14.5 5.5L8.3 12l6.2 6.5" stroke="${c}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  chevR:(c='#9f9fa9',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.5 5.5l6.2 6.5-6.2 6.5" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  doc:(c='#52525c',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4.8" y="3.4" width="14.4" height="17.2" rx="2.4" stroke="${c}" stroke-width="1.6"/><path d="M8.4 8.6h7.2M8.4 12.2h7.2M8.4 15.8h4.2" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  chat:(c='#52525c',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 11.6c0 4.1-3.8 7.4-8.5 7.4-.9 0-1.8-.1-2.6-.3l-4.6 1.7 1.3-3.7A7 7 0 0 1 3.5 11.6C3.5 7.5 7.3 4.2 12 4.2s8.5 3.3 8.5 7.4Z" stroke="${c}" stroke-width="1.7" stroke-linejoin="round"/></svg>`,
+  chatDots:(s=26)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20.5 11.6c0 4.1-3.8 7.4-8.5 7.4-.9 0-1.8-.1-2.6-.3l-4.6 1.7 1.3-3.7A7 7 0 0 1 3.5 11.6C3.5 7.5 7.3 4.2 12 4.2s8.5 3.3 8.5 7.4Z" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/><circle cx="8.6" cy="11.6" r="1.15" fill="#fff"/><circle cx="12" cy="11.6" r="1.15" fill="#fff"/><circle cx="15.4" cy="11.6" r="1.15" fill="#fff"/></svg>`,
+  gear:(c='#52525c',s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="${c}" stroke-width="1.6"/><path d="M19.4 14.6a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-2.6 1.1v.3a1.8 1.8 0 1 1-3.6 0v-.2a1.5 1.5 0 0 0-2.7-1.1l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0-1.1-2.6h-.3a1.8 1.8 0 1 1 0-3.6h.2a1.5 1.5 0 0 0 1.1-2.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 2.6-1.1v-.3a1.8 1.8 0 1 1 3.6 0v.2a1.5 1.5 0 0 0 2.7 1.1l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0 1.1 2.6h.3a1.8 1.8 0 1 1 0 3.6h-.2a1.5 1.5 0 0 0-1.4.9Z" stroke="${c}" stroke-width="1.4" stroke-linejoin="round"/></svg>`,
+  pin:(c='#52525c',s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21c4-3.6 6.6-6.8 6.6-10a6.6 6.6 0 1 0-13.2 0c0 3.2 2.6 6.4 6.6 10Z" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="10.8" r="2.3" stroke="${c}" stroke-width="1.6"/></svg>`,
+  warn:(c='#a64901',s=18)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4.6l8.4 14.6H3.6L12 4.6Z" stroke="${c}" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v3.6M12 16.4v.1" stroke="${c}" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+  tick:(s=20)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="#2bbc80"/><path d="M8.2 12.3l2.6 2.6 5-5.2" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  tickDark:(s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#18181b"/><path d="M7.8 12.3l2.8 2.8 5.6-5.8" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  lock:(c='#9f9fa9',s=14)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10.4" width="14" height="9.2" rx="2.2" stroke="${c}" stroke-width="1.8"/><path d="M8.4 10.4V7.8a3.6 3.6 0 0 1 7.2 0v2.6" stroke="${c}" stroke-width="1.8"/></svg>`,
+  wt:(s=28)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="8" cy="7.6" r="2.6" fill="#8dc63f"/><circle cx="16" cy="7.6" r="2.6" fill="#2e8bc0"/><path d="M4.4 19.4c0-2.6 1.6-4.3 3.6-4.3s3.6 1.7 3.6 4.3M12.4 19.4c0-2.6 1.6-4.3 3.6-4.3s3.6 1.7 3.6 4.3" stroke="#52525c" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  plus:(c='#52525c',s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 6v12M6 12h12" stroke="${c}" stroke-width="2" stroke-linecap="round"/></svg>`,
+};
+
+/* =========================================================================
+   NAVIGATION — one function for both modes.
+   ========================================================================= */
+function goto(target, params) {
+  const url = SIMULATED ? curURL() : new URL(target === 'portal' ? REAL.portal : REAL.partner);
+  if (SIMULATED) {
+    url.search = '';
+    url.hash = '';
+    if (target === 'portal') url.searchParams.set('site', 'portal');
+    Object.entries(params.query || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+    if (params.hash) url.hash = params.hash;
+    j.set(SS, K.simSite, target);
+    site = target;
+    pushURL(url);
+    return;
+  }
+  url.pathname = location.pathname;
+  Object.entries(params.query || {}).forEach(([k, v]) => url.searchParams.set(k, v));
+  if (params.hash) url.hash = params.hash;
+  if (params.newTab && isDesktop()) { window.open(url.toString(), '_blank'); return; }
+  location.href = url.toString();
+}
+
+/* =========================================================================
+   PARTNER SIDE
+   ========================================================================= */
+const partner = {
+  session:  () => j.get(SS, K.partnerSession),
+  route:    () => (curHash() || '#/study').replace(/^#/, ''),
+
+  /* the tap that starts everything */
+  signIn(intent = null, mode = null) {
+    const s = nonce();
+    j.set(SS, K.handoff, {
+      s,
+      route: partner.route(),
+      scrollY: window.scrollY,
+      intent,
+      at: Date.now(),
+    });
+    goto('portal', { query: {
+      screen: 'signin',
+      ret: SIMULATED ? location.origin : REAL.partner,
+      route: partner.route(),
+      s,
+      ...(intent ? { intent } : {}),
+      ...(mode ? { mode } : {}),
+    }});
+  },
+
+  /* the return leg — reads the ticket out of the FRAGMENT and strips it */
+  consumeTicket() {
+    const raw = curHash() || '';
+    const qi = raw.indexOf('?');
+    if (qi === -1) return false;
+    const p = new URLSearchParams(raw.slice(qi + 1));
+    const tkt = p.get('wtAuth');
+    const s = p.get('s');
+    if (!tkt) return false;
+
+    const pending = j.get(SS, K.handoff);
+    let ok = false, payload = null;
+    if (pending && pending.s && s === pending.s) {
+      try { payload = b64d(tkt); ok = true; } catch { ok = false; }
+    }
+
+    // strip the ticket before anything else can read it or it lands in history
+    const cleanRoute = raw.slice(0, qi) || '#/study';
+    const clean = curURL(); clean.hash = cleanRoute;
+    replaceURL(clean);
+    j.del(SS, K.handoff);
+
+    if (!ok) { toast('Sign-in could not be verified', true); return false; }
+
+    j.set(SS, K.partnerSession, { name: payload.n, short: payload.sh, initials: payload.i, exp: payload.e });
+    setTimeout(() => {
+      window.scrollTo(0, pending.scrollY || 0);
+      toast(`Signed in as ${payload.sh}`);
+      if (pending.intent === 'account') openSheet();
+    }, 40);
+    return true;
+  },
+
+  signOut() {
+    j.del(SS, K.partnerSession);
+    if (SIMULATED) j.del(LS, K.portalSession); // demo convenience: reset both
+    closeSheet();
+    render();
+    toast('Signed out on ' + PARTNER_LABEL);
+  },
+
+  openPortal(screen, extra = {}) {
+    closeSheet();
+    goto('portal', {
+      query: { screen, ret: SIMULATED ? location.origin : REAL.partner, route: partner.route(), ...extra },
+      newTab: true,
+    });
+  },
+};
+
+/* ---- entry option (the one demo control) -------------------------------- */
+const entryOption = () => j.get(LS, K.entryOption, 'B');
+const setEntryOption = (v) => { j.set(LS, K.entryOption, v); render(); };
+
+/* ---- partner rendering --------------------------------------------------- */
+function accountControl() {
+  const s = partner.session();
+  const opt = entryOption();
+  if (opt === 'C') return '';                        // lives in the sheet only
+  if (!s && opt === 'D') return '';                  // the banner carries the invitation
+  if (!s) return `<button class="signin-btn${opt === 'A' ? ' solo' : ''}" data-act="signin">${I.person()}<span>Sign in</span></button>`;
+  return `<button class="acct-seg" data-act="account" aria-label="Your account">
+      <span class="avatar">${esc(s.initials)}<i class="unread"></i></span>
+    </button>`;
+}
+
+/* Option D's banner: only ever visible signed OUT. The moment there is a
+   session it is replaced by the avatar segment, so the steady state for a
+   signed-in patient costs no vertical space at all. */
+function bannerHTML() {
+  if (entryOption() !== 'D' || partner.session()) return '';
+  return `<div class="acctbanner">
+      <span class="ic">${I.wt(22)}</span>
+      <span class="tx">
+        <span class="t1"><span class="on-sm">Track your requests</span><span class="on-lg">Track your trial requests</span></span>
+        <span class="t2">
+          <button class="bbtn" data-act="signin">Sign in</button>
+          <button class="lnk" data-act="signin" data-mode="create">Create account</button>
+        </span>
+      </span>
+    </div>`;
+}
+
+/* The partner's own footer. It exists so version E can be judged honestly: the
+   whole worry is what a bottom bar does when the partner has content below the
+   widget. Without a footer here, E would look better than it is. */
+function partnerFooterHTML() {
+  return `<footer class="pfoot">
+      <div class="pf-in">
+        <div class="pf-brand"><span class="partner-mark">PH</span>Partner Health</div>
+        <div class="pf-cols">
+          <span><b>Care</b><i>Find a clinic</i><i>Our specialists</i></span>
+          <span><b>Research</b><i>Clinical trials</i><i>Publications</i></span>
+          <span><b>About</b><i>Contact</i><i>Privacy</i></span>
+        </div>
+      </div>
+      <div class="pf-legal">© 2026 Partner Health. Registered charity 000000000.</div>
+    </footer>`;
+}
+
+function partnerNavHTML() {
+  return `<nav class="partner-nav">
+      <span class="partner-brand"><span class="partner-mark">PH</span>Partner Health</span>
+      <span class="partner-links"><span>Our care</span><span>Research</span><span>Patients &amp; families</span></span>
+      <span class="partner-cta">Donate</span>
+      <button class="hamb" data-act="partner-menu" aria-label="Partner Health menu">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="#09090b" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </button>
+    </nav>`;
+}
+
+function headerHTML() {
+  const opt = entryOption();
+  const acct = accountControl();
+  const pillInner = `
+    <div class="pill-left">
+      <span class="pill-ico">${I.scope()}</span>
+      <span class="pill-lbl">Study Finder</span>
+      <span class="pill-chev">${I.updown()}</span>
+    </div>`;
+
+  let row;
+  if (opt === 'D') {
+    // signed out → plain switcher (the banner above carries the CTA)
+    // signed in  → the avatar takes the segment, banner gone
+    row = `<div class="pill grow">
+        <button class="pill-left" data-act="switch" style="background:none">${pillInner}</button>
+        ${acct ? `<span class="pill-div acct-mobile"></span><span class="acct-mobile">${acct}</span>` : ''}
+      </div>`;
+  } else if (opt === 'A') {
+    row = `<div class="pillrow">
+        <button class="pill" data-act="switch">${pillInner}</button>
+        <span class="acct-mobile">${acct}</span>
+      </div>`;
+  } else if (opt === 'E') {
+    // Same row as B, but on mobile the chevron goes: the three pages are in the
+    // bottom bar, so the pill is a title there, not a switcher.
+    row = `<div class="pill grow e-mode">
+        <button class="pill-left" data-act="switch" style="background:none">${pillInner}</button>
+        ${acct ? `<span class="pill-div acct-mobile"></span><span class="acct-mobile">${acct}</span>` : ''}
+      </div>`;
+  } else if (opt === 'B') {
+    row = `<div class="pill grow">
+        <button class="pill-left" data-act="switch" style="background:none">${pillInner}</button>
+        ${acct ? `<span class="pill-div acct-mobile"></span><span class="acct-mobile">${acct}</span>` : ''}
+      </div>`;
+  } else {
+    // C: one control. The dropdown button carries a user glyph so the account
+    // is discoverable at all, which is C's weakest point.
+    const sess = partner.session();
+    const glyph = sess
+      ? `<span class="avatar">${esc(sess.initials)}<i class="unread"></i></span>`
+      : `<span class="pill-user">${I.person('#52525c', 20)}</span>`;
+    row = `<button class="pill grow" data-act="switch">${pillInner}<span class="pill-div"></span>${glyph}</button>`;
+  }
+
+  return `<div class="whead"><div class="wheadin">
+      ${bannerHTML()}
+      <div class="hrow">
+        ${row}
+        <div class="searchrow">
+          <div class="search">
+            ${I.info()}
+            <input placeholder="Search study details…" aria-label="Search studies">
+            <span class="go">${I.search()}</span>
+          </div>
+          <button class="iconbtn filter-toggle" aria-label="Filters">${I.sliders()}</button>
+        </div>
+        <div class="acct-desktop">${acct}</div>
+      </div>
+    </div></div>`;
+}
+
+/* The filter rail. Static — it is chrome, so the widget is judged in its real
+   shape rather than as a bare list. On mobile these live behind the filter
+   button, which is why the rail is desktop-only. */
+/* Version E's bottom bar.
+   position:sticky — NOT fixed. A fixed bar would hover over the partner's own
+   footer and content, because the widget does not own the viewport. Sticky pins
+   it to the bottom of the screen only while the widget is in view, and parks it
+   at the end of the widget when you scroll past. That is the honest behaviour
+   for something injected into someone else's container. */
+function bottomBarHTML() {
+  if (entryOption() !== 'E') return '';
+  const tab = (label, icon, on, act) =>
+    `<button class="btab${on ? ' on' : ''}" data-act="${act}"><span class="bi">${icon}</span><span class="bl">${label}</span></button>`;
+  return `<nav class="bbar" aria-label="Pages">
+      ${tab('Study Finder', I.scope('currentColor', 24), true, 'tab-study')}
+      ${tab('Learning', I.doc('currentColor', 24), false, 'tab-other')}
+      ${tab('Support', I.chat('currentColor', 24), false, 'tab-other')}
+    </nav>`;
+}
+
+function filtersHTML() {
+  const check = (l) => `<span class="fopt"><span class="fbox"></span>${l}</span>`;
+  const radio = (l) => `<span class="fopt"><span class="fbox round"></span>${l}</span>`;
+  const head  = (l) => `<span class="h"><span class="l">${l} ${I.info('#9f9fa9', 16)}</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 14.5l6-5.5 6 5.5" stroke="#52525c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`;
+  return `<aside class="filters">
+      <div class="fcard"><span class="h"><span class="l">${I.sliders('#09090b', 22)} Filter</span></span></div>
+      <div class="fcard">
+        <span class="l" style="display:flex;align-items:center;gap:6px;font-size:16px;font-weight:700">Condition ${I.info('#9f9fa9', 16)}</span>
+        <span class="finput">Enter condition/diagnosis</span>
+      </div>
+      <div class="fcard">
+        <span class="l" style="display:flex;align-items:center;gap:6px;font-size:16px;font-weight:700">Location ${I.info('#9f9fa9', 16)}</span>
+        <span class="finput">Enter full state/province name</span>
+      </div>
+      <div class="fcard">${head('Study Type')}
+        ${check('Interventional')}${check('Observational')}${check('Expanded access')}
+      </div>
+      <div class="fcard">${head('Study Status')}
+        ${check('Recruiting')}${check('Active not recruiting')}${check('Not yet recruiting')}${check('Enrolling by invitation')}${check('Available')}${check('No longer available')}
+      </div>
+      <div class="fcard">${head('Sex')}
+        ${radio('All')}${radio('Female')}${radio('Male')}
+      </div>
+    </aside>`;
+}
+
+function studyCardHTML(s) {
+  const status = s.status === 'rec'
+    ? `<span class="chip rec">${I.dot('#96ddc4','#237050')}Recruiting</span>`
+    : `<span class="chip nyr">${I.dot('#ffc296','#a64901')}Not yet recruiting</span>`;
+  const inner = `
+      <div class="chips">
+        ${status}
+        <span class="chip int">${I.flask()}Interventional</span>
+        ${s.featured ? `<span class="chip feat">${I.star()}Featured</span>` : ''}
+      </div>
+      <div class="ctitle">${esc(s.title)}</div>
+      <div class="crow">${I.people()}Age: <b>${esc(s.age)}</b></div>
+      <div class="conds">
+        <div class="h">${I.heart()}Conditions:</div>
+        <div class="b">
+          <span class="cond">${esc(s.conds[0])}</span>
+          ${s.conds.length > 1 ? `<span style="display:inline-flex;align-items:center;gap:2px;padding:4px 8px;font-size:14px"><span style="text-decoration:underline">+${s.conds.length - 1} More</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 9.5l6 5.5 6-5.5" stroke="#09090b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` : ''}
+        </div>
+      </div>
+      <div class="cfoot"><span class="ai">${I.twinkle()}AI-Simplified</span><span>${esc(s.nct)}</span></div>`;
+  return s.featured
+    ? `<button class="card feat" data-act="study" data-nct="${s.nct}"><span class="inner">${inner}</span></button>`
+    : `<button class="card" data-act="study" data-nct="${s.nct}">${inner}</button>`;
+}
+
+function renderPartnerList() {
+  return `
+    ${partnerNavHTML()}
+    <div class="widget">
+      ${headerHTML()}
+      <div class="wbody">
+        ${filtersHTML()}
+        <div class="results">
+          <div class="count">Showing <b>1</b> to <b>3</b> of <b>1333</b> Studies</div>
+          ${STUDIES.map(studyCardHTML).join('')}
+        </div>
+      </div>
+      ${bottomBarHTML()}
+    </div>
+    ${partnerFooterHTML()}`;
+}
+
+function renderPartnerStudy(nct) {
+  const s = studyBy(nct) || STUDIES[0];
+  const sess = partner.session();
+  return `
+    ${partnerNavHTML()}
+    <div class="widget">
+      ${headerHTML()}
+      <div class="wbody single">
+        <button class="crow" data-act="back-list" style="gap:4px;font-weight:500;min-height:44px;align-self:flex-start">${I.chevL('#52525c',18)}All studies</button>
+        <div class="card">
+          <div class="chips">
+            ${s.status === 'rec' ? `<span class="chip rec">${I.dot('#96ddc4','#237050')}Recruiting</span>` : `<span class="chip nyr">${I.dot('#ffc296','#a64901')}Not yet recruiting</span>`}
+            <span class="chip int">${I.flask()}Interventional</span>
+          </div>
+          <div class="ctitle">${esc(s.title)}</div>
+          <div class="crow">${I.people()}Age: <b>${esc(s.age)}</b></div>
+          <div class="crow">${I.pin()}${esc(s.site)} · ${esc(s.dist)}</div>
+          <div class="conds">
+            <div class="h">${I.heart()}Conditions:</div>
+            <div class="b">${s.conds.slice(0, 4).map(c => `<span class="cond">${esc(c)}</span>`).join('')}</div>
+          </div>
+          <div class="cfoot"><span class="ai">${I.twinkle()}AI-Simplified</span><span>${esc(s.nct)}</span></div>
+        </div>
+        <button class="btn pri full" data-act="enroll" data-nct="${s.nct}">I'm interested</button>
+        <div style="font-size:13px;color:var(--n600);line-height:1.5;text-align:center">
+          ${sess
+            ? `Opens ${PORTAL_LABEL} — you're already signed in, so it starts at step 1.`
+            : `Opens ${PORTAL_LABEL}. You can start without an account.`}
+        </div>
+      </div>
+      ${bottomBarHTML()}
+    </div>
+    ${partnerFooterHTML()}`;
+}
+
+/* ---- account sheet -------------------------------------------------------
+   In option C the sheet is ALSO the page switcher, because that is the whole
+   proposition: no new chrome, account rides along under the three pages. -----*/
+function pagesSectionHTML() {
+  if (entryOption() !== 'C') return '';
+  const row = (label, icon, on) => `<div class="mrow" style="cursor:default">
+      <span class="l"><span class="ic">${icon}</span><span class="t">${label}</span></span>
+      ${on ? `<svg width="22" height="22" viewBox="0 0 24 25" fill="none"><path d="M9 18.25a.75.75 0 0 1-.535-.224l-4-4.062a.75.75 0 1 1 1.07-1.052L9 16.435l9.47-9.466a.75.75 0 1 1 1.06 1.06l-10 10a.75.75 0 0 1-.53.221Z" fill="#52525C"/></svg>` : ''}
+    </div>`;
+  return `<div class="menu" style="padding-bottom:0">
+      ${row('Study Finder', I.scope('#52525c', 20), true)}
+      ${row('Learning Center', I.doc(), false)}
+      ${row('Support Program', I.chat(), false)}
+    </div>
+    <div style="padding:12px 20px 0;font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--n600)">Your account</div>`;
+}
+
+function sheetHTML() {
+  const s = partner.session();
+  const pages = pagesSectionHTML();
+  if (!s) {
+    // C has no header control to advertise the account, so the sheet has to do
+    // the advertising: a highlighted block with BOTH actions, not a plain row.
+    if (entryOption() === 'C') {
+      return `
+      <div class="grab"><i></i></div>
+      <div class="sheet-head" style="padding-bottom:10px">
+        <b style="font-size:16px">Switch Page</b>
+        <button class="xbtn" data-act="close-sheet" aria-label="Close">${I.x()}</button>
+      </div>
+      ${pages}
+      <div class="acctcard">
+        <div class="ac-top">
+          <span class="ac-ic">${I.wt(22)}</span>
+          <span>
+            <span class="ac-t">Track your trial requests</span><br>
+            <span class="ac-s">See where each request stands and message the study team.</span>
+          </span>
+        </div>
+        <div class="ac-actions">
+          <button class="btn pri" data-act="signin">Sign in</button>
+          <button class="btn sec" data-act="signin" data-mode="create">Create account</button>
+        </div>
+      </div>
+      <div style="padding:0 20px 20px;font-size:12px;color:var(--n600);line-height:1.5">
+        Sign-in happens on ${PORTAL_LABEL}. You'll come straight back to this page.
+      </div>`;
+    }
+    return `
+      <div class="grab"><i></i></div>
+      <div class="sheet-head">
+        <div class="sheet-id">
+          <span class="big" style="background:var(--n100);color:var(--n700)">${I.person('#52525c', 22)}</span>
+          <span><span class="nm">Your WeTrials account</span><br><span class="em">Track requests and messages</span></span>
+        </div>
+        <button class="xbtn" data-act="close-sheet" aria-label="Close">${I.x()}</button>
+      </div>
+      <div class="menu"><button class="btn pri full" data-act="signin" style="margin:4px 0">Sign in to WeTrials</button></div>
+      <div style="padding:0 20px 20px;font-size:13px;color:var(--n600);line-height:1.5">
+        Sign-in happens on ${PORTAL_LABEL}. You'll come straight back to this page.
+      </div>`;
+  }
+  return `
+    <div class="grab"><i></i></div>
+    ${entryOption() === 'C' ? `<div class="sheet-head" style="padding-bottom:10px"><b style="font-size:16px">Switch Page</b><button class="xbtn" data-act="close-sheet" aria-label="Close">${I.x()}</button></div>${pages}` : ''}
+    <div class="sheet-head"${entryOption() === 'C' ? ' style="border-bottom:0;padding-top:8px"' : ''}>
+      <div class="sheet-id">
+        <span class="big">${esc(s.initials)}</span>
+        <span><span class="nm">${esc(s.name)}</span><br><span class="em">${esc(USER.email)}</span></span>
+      </div>
+      ${entryOption() === 'C' ? '' : `<button class="xbtn" data-act="close-sheet" aria-label="Close">${I.x()}</button>`}
+    </div>
+    <div class="menu">
+      <button class="mrow" data-act="portal" data-screen="requests">
+        <span class="l"><span class="ic">${I.doc()}</span><span class="t">My requests</span></span>
+        <span style="display:flex;align-items:center;gap:8px"><span class="pillnum">${(j.get(LS, K.requests, SEED_REQUESTS) || []).length}</span>${I.chevR()}</span>
+      </button>
+      <button class="mrow" data-act="portal" data-screen="messages">
+        <span class="l"><span class="ic">${I.chat()}<i class="dot"></i></span><span class="t">Messages</span></span>
+        ${I.chevR()}
+      </button>
+      <button class="mrow" data-act="portal" data-screen="profile">
+        <span class="l"><span class="ic">${I.person('#52525c', 20)}</span><span class="t">My profile</span></span>
+        ${I.chevR()}
+      </button>
+      <button class="mrow" data-act="portal" data-screen="settings">
+        <span class="l"><span class="ic">${I.gear()}</span><span class="t">Settings</span></span>
+        ${I.chevR()}
+      </button>
+    </div>
+    <div class="signout"><div class="inner">
+      <button class="t" data-act="signout">Sign out of WeTrials here</button>
+      <div class="s">Only ends your session on ${PARTNER_LABEL}. You stay signed in on ${PORTAL_LABEL}.</div>
+    </div></div>`;
+}
+
+const $sheet = document.getElementById('sheet');
+const $scrim = document.getElementById('scrim');
+function openSheet() { $sheet.innerHTML = sheetHTML(); $sheet.classList.add('on'); $scrim.classList.add('on'); }
+function closeSheet() { $sheet.classList.remove('on'); $scrim.classList.remove('on'); }
+
+/* ---- toast --------------------------------------------------------------- */
+let toastT;
+function toast(msg, bad = false) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `${bad ? I.warn('#ffc296', 20) : I.tick()}<span>${esc(msg)}</span>`;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('on'), 3200);
+}
+
+/* =========================================================================
+   PORTAL SIDE
+   ========================================================================= */
+const portal = {
+  session: () => j.get(LS, K.portalSession),
+  ret:     () => QS_live().get('ret') || '',
+  route:   () => QS_live().get('route') || '/study',
+  screen:  () => QS_live().get('screen') || 'requests',
+  s:       () => QS_live().get('s') || '',
+  intent:  () => QS_live().get('intent') || '',
+  nct:     () => QS_live().get('nct') || '',
+
+  returnAllowed() { return ALLOWED_RETURN_ORIGINS.includes(portal.ret()); },
+
+  /* fake the sign-in, then hand a ticket back in the FRAGMENT */
+  completeSignIn() {
+    j.set(LS, K.portalSession, { name: USER.name, at: Date.now() });
+    const tkt = b64e({ n: USER.name, sh: USER.short, i: USER.initials, e: Date.now() + 3600e3 });
+    const hash = `${portal.route()}?wtAuth=${encodeURIComponent(tkt)}&s=${encodeURIComponent(portal.s())}`;
+    goto('partner', { hash });
+  },
+
+  backToPartner() { goto('partner', { hash: portal.route() }); },
+};
+function QS_live() { return curQS(); }
+
+function portalNav(title) {
+  return `<div class="pnav">
+      <div class="pback">
+        <button class="chev" data-act="p-back" aria-label="Back to ${esc(PARTNER_LABEL)}">${I.chevL()}</button>
+        <span><span class="tt">${esc(title)}</span><br><span class="ss">Back to ${esc(PARTNER_LABEL)}</span></span>
+      </div>
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--n500)">${I.lock()}${esc(PORTAL_LABEL)}</span>
+    </div>`;
+}
+
+function renderPortalSignin() {
+  const allowed = portal.returnAllowed();
+  const creating = QS_live().get('mode') === 'create';
+  return `<div class="portal">
+    <div class="pnav">
+      <span style="display:flex;align-items:center;gap:10px"><span style="display:flex">${I.wt(26)}</span><b style="font-size:16px">WeTrials</b></span>
+      <span style="font-size:13px;color:var(--n600)">Patient Portal</span>
+    </div>
+    <div class="plogin">
+      <div>
+        <div class="h1">${creating ? 'Create your account' : 'Log in to your account'}</div>
+        <div class="sub" style="margin-top:8px">${creating ? 'It takes about a minute' : 'Sign in to access your enrollment portal'}</div>
+      </div>
+      ${allowed
+        ? `<div class="notice">${I.info('#0d67e5', 20)}<span>You'll return to <b>${esc(PARTNER_LABEL)}</b> as soon as you're signed in.</span></div>`
+        : `<div class="notice bad">${I.warn('#af2f25', 20)}<span>This site isn't registered for account access, so we can't send you back to it. The origin we saw was <b>${esc(portal.ret() || 'none')}</b>.</span></div>`}
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <button class="btn sec full" data-act="p-signin" ${allowed ? '' : 'disabled style="opacity:.5"'}>
+          ${I.wt(20)}<span>${creating ? 'Continue with WeTrials' : 'Sign in with WeTrials'}</span>
+        </button>
+        <div style="display:flex;align-items:center;justify-content:center;gap:5px;height:44px;font-size:14px;color:var(--n600)">
+          ${creating ? 'Already have an account?' : "Don't have an account?"}
+          <span style="font-weight:500;color:var(--n1100);text-decoration:underline;text-underline-offset:2px">${creating ? 'Log in' : 'Create an account'}</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px">${I.lock()}<span style="font-size:12px;color:var(--n500)">${esc(PORTAL_LABEL)}</span></div>
+    </div>
+  </div>`;
+}
+
+function reqCard(r) {
+  const state = r.state === 'reviewing'
+    ? `<span class="chip" style="background:var(--info50);color:var(--info700);padding:5px 10px;font-size:13px">${I.dot('#86b9ff','#0156cd',16)}Site reviewing</span>`
+    : `<span class="chip" style="background:var(--succ50);color:var(--succ700);padding:5px 10px;font-size:13px">${I.dot('#96ddc4','#237050',16)}Submitted</span>`;
+  return `<div class="req">
+      <div class="top">${state}<span class="when">Updated ${esc(r.when)}</span></div>
+      <div class="t">${esc(r.title)}</div>
+      <div class="crow" style="font-size:13px">${I.pin()}${esc(r.site)} · ${esc(r.dist)}</div>
+      ${r.needsDoc ? `<div class="alert">${I.warn()}1 document still needed</div>` : ''}
+    </div>`;
+}
+
+function renderPortalRequests() {
+  if (!portal.session()) return renderPortalGate('My requests', 'Sign in to see your requests.');
+  const reqs = j.get(LS, K.requests, SEED_REQUESTS) || [];
+  return `<div class="portal">
+    ${portalNav('My requests')}
+    <div class="pwrap">
+      <div class="tabs"><span class="tab on">Active ${reqs.length}</span><span class="tab">Closed</span></div>
+      ${reqs.length ? reqs.map(reqCard).join('') : `<div class="req"><div class="t">No requests yet</div></div>`}
+      <button class="btn sec full" data-act="p-back" style="margin-top:8px">${I.chevL('#09090b', 20)}Back to ${esc(PARTNER_LABEL)}</button>
+    </div>
+  </div>`;
+}
+
+function renderPortalSimple(title, body) {
+  if (!portal.session()) return renderPortalGate(title, 'Sign in to continue.');
+  return `<div class="portal">
+    ${portalNav(title)}
+    <div class="pwrap">
+      <div class="req"><div class="t">${esc(title)}</div>
+        <div style="font-size:14px;color:var(--n600);line-height:1.5">${esc(body)}</div></div>
+      <button class="btn sec full" data-act="p-back">${I.chevL('#09090b', 20)}Back to ${esc(PARTNER_LABEL)}</button>
+    </div>
+  </div>`;
+}
+
+function renderPortalGate(title, msg) {
+  return `<div class="portal">
+    ${portalNav(title)}
+    <div class="pwrap">
+      <div class="req">
+        <div class="t">${esc(msg)}</div>
+        <button class="btn sec full" data-act="p-signin-inline">${I.wt(20)}<span>Sign in with WeTrials</span></button>
+      </div>
+      <button class="btn sec full" data-act="p-back">${I.chevL('#09090b', 20)}Back to ${esc(PARTNER_LABEL)}</button>
+    </div>
+  </div>`;
+}
+
+/* enroll: works signed OUT too — that is the point */
+let enrollStep = 1;
+function renderPortalEnroll() {
+  const s = studyBy(portal.nct()) || STUDIES[0];
+  const signedIn = !!portal.session();
+  const total = 3;
+  const stepper = `<div class="step">
+      ${[1, 2, 3].map((n, i) => `<span class="n${enrollStep >= n ? ' on' : ''}">${n}</span>${i < 2 ? '<span class="ln"></span>' : ''}`).join('')}
+    </div>`;
+
+  let body = '';
+  if (enrollStep === 1) {
+    body = `<div class="req">
+        <div class="t" style="font-size:18px">Who is this for?</div>
+        ${signedIn
+          ? `<button class="opt on"><span class="av">${esc(USER.initials)}</span>
+               <span style="flex:1"><span class="nm">${esc(USER.name)}</span><br><span class="mt">Myself · b. 1978</span></span>
+               ${I.tickDark()}</button>`
+          : `<button class="opt on"><span class="av ghost">${I.person('#52525c', 22)}</span>
+               <span style="flex:1"><span class="nm">Myself</span><br><span class="mt">We'll ask for your details next</span></span>
+               ${I.tickDark()}</button>`}
+        <button class="opt"><span class="av ghost">${I.plus()}</span><span class="nm">Someone I care for</span></button>
+      </div>`;
+  } else if (enrollStep === 2) {
+    body = `<div class="req">
+        <div class="t" style="font-size:18px">Supporting documents</div>
+        <div style="font-size:14px;color:var(--n600);line-height:1.5">Recent imaging or pathology reports help the site respond faster. You can add them later.</div>
+        <button class="btn sec full">Add a document</button>
+      </div>`;
+  } else {
+    body = `<div class="req">
+        <div class="t" style="font-size:18px">Message &amp; site</div>
+        <div class="crow" style="font-size:14px">${I.pin()}${esc(s.site)} · ${esc(s.dist)}</div>
+        <div class="field">
+          <label for="msg">Anything the study team should know?</label>
+          <textarea id="msg" placeholder="Optional"></textarea>
+        </div>
+      </div>`;
+  }
+
+  return `<div class="portal">
+    ${portalNav("Request to enroll")}
+    <div class="pwrap">
+      <div class="req" style="gap:6px">
+        <div style="font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--n600)">Study</div>
+        <div style="font-size:15px;font-weight:600;line-height:1.4">${esc(s.title)}</div>
+        <div style="font-size:13px;color:var(--n600)">${esc(s.nct)}</div>
+      </div>
+      ${!signedIn ? `<div class="notice">${I.info('#0d67e5', 20)}<span>You can start without an account — we'll ask you to sign in before submitting.</span></div>` : ''}
+      ${stepper}
+      ${body}
+      <div class="efoot">
+        ${enrollStep > 1 ? `<button class="btn sec sm" data-act="e-back">Back</button>` : ''}
+        <span class="stepno">Step ${enrollStep} of ${total}</span>
+        <button class="btn pri" data-act="e-next" style="margin-left:auto">${enrollStep === total ? 'Submit request' : 'Continue'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPortalDone() {
+  const s = studyBy(portal.nct()) || STUDIES[0];
+  return `<div class="portal">
+    ${portalNav('Request sent')}
+    <div class="pwrap">
+      <div class="req success">
+        ${I.tick(44)}
+        <div style="font-size:20px;font-weight:700">Request sent</div>
+        <div style="font-size:14px;color:var(--n600);line-height:1.5">${esc(s.site)} will review it and message you here. You'll also get an email.</div>
+      </div>
+      <button class="btn pri full" data-act="p-back">Back to ${esc(PARTNER_LABEL)}</button>
+      <button class="btn sec full" data-act="p-goto-requests">See my requests</button>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   RENDER + EVENTS
+   ========================================================================= */
+const $root = document.getElementById('root');
+
+function render() {
+  // In simulated mode there is no page load to boot on, so the return leg has
+  // to be picked up on arrival instead. Cheap no-op when there is no ticket.
+  if (SIMULATED && site === 'partner') partner.consumeTicket();
+
+  document.getElementById('chrome-host').textContent = site === 'portal' ? PORTAL_LABEL : PARTNER_LABEL;
+
+  if (site === 'portal') {
+    const sc = portal.screen();
+    let html;
+    if (sc === 'signin')        html = renderPortalSignin();
+    else if (sc === 'enroll')   html = renderPortalEnroll();
+    else if (sc === 'done')     html = renderPortalDone();
+    else if (sc === 'messages') html = renderPortalSimple('Messages', 'One unread message from the study team at Toronto Western Hospital.');
+    else if (sc === 'profile')  html = renderPortalSimple('My profile', 'Your health summary, documents and sharing settings live here.');
+    else if (sc === 'settings') html = renderPortalSimple('Settings', 'Account, notifications and people you care for.');
+    else                        html = renderPortalRequests();
+    document.body.classList.remove('has-bbar');
+    $root.innerHTML = `<div class="page">${html}</div>`;
+    document.getElementById('fab')?.remove();
+    document.getElementById('demo')?.remove();
+    return;
+  }
+
+  document.body.classList.toggle('has-bbar', entryOption() === 'E');
+  const route = partner.route();
+  const m = route.match(/^\/study\/([^?]+)/);
+  $root.innerHTML = `<div class="page">${m ? renderPartnerStudy(m[1]) : renderPartnerList()}</div>`;
+  mountFab();
+  mountDemo();
+}
+
+function mountFab() {
+  if (document.getElementById('fab')) return;
+  const b = el(`<button id="fab" aria-label="Chat with WeTrials">${I.chatDots()}</button>`);
+  b.addEventListener('click', () => toast('Chat — existing surface, untouched by this work'));
+  document.body.appendChild(b);
+}
+
+function mountDemo() {
+  document.getElementById('demo')?.remove();
+  const cur = entryOption();
+  const d = el(`<div id="demo"><span class="lb">Entry</span><span class="opts">
+      ${['A', 'B', 'C', 'D', 'E'].map(o => `<button data-opt="${o}" aria-pressed="${o === cur}">${o}</button>`).join('')}
+    </span></div>`);
+  d.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-opt]');
+    if (b) setEntryOption(b.dataset.opt);
+  });
+  document.body.appendChild(d);
+}
+
+/* one delegated handler for both sites */
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+
+  switch (act) {
+    case 'signin':      closeSheet(); partner.signIn(null, t.dataset.mode || null); break;
+    case 'partner-menu': toast("Partner Health's own menu — not part of the widget"); break;
+    case 'account':     openSheet(); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'signout':     partner.signOut(); break;
+    case 'tab-study': setRoute('/study'); break;
+    case 'tab-other': toast('Learning Center and Support Program — same widget, other pages'); break;
+    case 'switch':
+      // In option C the switcher IS the account entry point; elsewhere it only switches pages.
+      if (entryOption() === 'C') openSheet();
+      else toast('Page switcher — Learning Center, Support Program');
+      break;
+    case 'study':
+      setRoute(`/study/${t.dataset.nct}`);
+      break;
+    case 'back-list':
+      setRoute('/study');
+      break;
+    case 'enroll':
+      enrollStep = 1;
+      partner.openPortal('enroll', { nct: t.dataset.nct });
+      break;
+    case 'portal':
+      partner.openPortal(t.dataset.screen);
+      break;
+
+    case 'p-signin':        portal.completeSignIn(); break;
+    case 'p-signin-inline': {
+      // signing in from inside the portal: set the portal's own session, stay put
+      j.set(LS, K.portalSession, { name: USER.name, at: Date.now() });
+      render();
+      break;
+    }
+    case 'p-back':          portal.backToPartner(); break;
+    case 'p-goto-requests': {
+      const u = curURL(); u.searchParams.set('screen', 'requests');
+      if (SIMULATED) pushURL(u); else location.href = u.toString();
+      break;
+    }
+    case 'e-back': enrollStep = Math.max(1, enrollStep - 1); render(); window.scrollTo(0, 0); break;
+    case 'e-next': {
+      if (enrollStep < 3) { enrollStep++; render(); window.scrollTo(0, 0); break; }
+      if (!portal.session()) { j.set(LS, K.portalSession, { name: USER.name, at: Date.now() }); }
+      const reqs = j.get(LS, K.requests, SEED_REQUESTS) || [];
+      const s = studyBy(portal.nct()) || STUDIES[0];
+      if (!reqs.some(r => r.nct === s.nct)) {
+        reqs.unshift({ nct: s.nct, title: s.title, state: 'submitted', when: 'just now', site: s.site, dist: s.dist, needsDoc: false });
+      }
+      j.set(LS, K.requests, reqs);
+      const u = curURL(); u.searchParams.set('screen', 'done');
+      if (SIMULATED) pushURL(u); else location.href = u.toString();
+      break;
+    }
+  }
+});
+
+$scrim.addEventListener('click', closeSheet);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
+window.addEventListener('popstate', () => {
+  if (MEM) return;                       // no real history entries to go back to
+  if (SIMULATED) site = curQS().get('site') === 'portal' ? 'portal' : 'partner';
+  render();
+});
+
+/* ---- boot ---------------------------------------------------------------- */
+if (SIMULATED) site = curQS().get('site') === 'portal' ? 'portal' : 'partner';
+if (site === 'partner') partner.consumeTicket();
+render();
+</script>
+</body>
+</html>
