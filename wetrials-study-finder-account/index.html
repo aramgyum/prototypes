@@ -164,11 +164,14 @@
   .scrim.on{opacity:1;pointer-events:auto}
   .sheet{position:fixed;left:0;right:0;bottom:0;z-index:71;background:#fff;border-radius:16px 16px 0 0;
     transform:translateY(101%);transition:transform .22s cubic-bezier(.2,.8,.3,1);
-    max-height:88vh;overflow:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom))}
-  .sheet.on{transform:none}
+    max-height:88vh;overflow:auto;padding-bottom:calc(24px + env(safe-area-inset-bottom));
+    pointer-events:none}
+  .sheet.on{transform:none;pointer-events:auto}
   @media(min-width:1024px){
-    .sheet{left:auto;right:max(24px, calc((100vw - 1024px) / 2 + 32px));bottom:auto;top:168px;
-      width:360px;max-height:calc(100vh - 200px);border-radius:14px;
+    /* right/top are set in JS from the trigger's own box — CSS math went stale
+       the moment the content column changed width. These are only fallbacks. */
+    .sheet{left:auto;right:32px;bottom:auto;top:150px;
+      width:360px;max-height:calc(100vh - 180px);border-radius:14px;
       transform:translateY(-8px) scale(.98);opacity:0;box-shadow:0 24px 70px rgba(9,9,11,.28)}
     .sheet.on{transform:none;opacity:1}
   }
@@ -1023,8 +1026,34 @@ function sheetHTML() {
 
 const $sheet = document.getElementById('sheet');
 const $scrim = document.getElementById('scrim');
-function openSheet() { $sheet.innerHTML = sheetHTML(); $sheet.classList.add('on'); $scrim.classList.add('on'); }
+const desktopLayout = () => window.matchMedia('(min-width: 1024px)').matches;
+
+/* On desktop the panel hangs off whichever account control is actually visible.
+   Measuring the trigger beats hard-coding an offset: it survives the header
+   changing width, the D banner adding a row, and any entry option. */
+function placeSheet() {
+  if (!desktopLayout()) {
+    $sheet.style.top = $sheet.style.right = $sheet.style.left = '';
+    return;
+  }
+  const trigger =
+    document.querySelector('.acct-desktop [data-act="account"], .acct-desktop [data-act="signin"]') ||
+    [...document.querySelectorAll('[data-act="account"],[data-act="signin"]')].find(e => e.offsetParent !== null);
+  if (!trigger) return;
+  const r = trigger.getBoundingClientRect();
+  $sheet.style.top = `${Math.round(r.bottom + 10)}px`;
+  $sheet.style.right = `${Math.max(16, Math.round(window.innerWidth - r.right))}px`;
+  $sheet.style.left = 'auto';
+}
+
+function openSheet() {
+  $sheet.innerHTML = sheetHTML();
+  placeSheet();
+  $sheet.classList.add('on');
+  $scrim.classList.add('on');
+}
 function closeSheet() { $sheet.classList.remove('on'); $scrim.classList.remove('on'); }
+window.addEventListener('resize', () => { if ($sheet.classList.contains('on')) placeSheet(); });
 
 /* ---- toast --------------------------------------------------------------- */
 let toastT;
